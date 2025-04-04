@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
@@ -53,29 +54,58 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OnMouseDownPlayMedia(object sender, MouseButtonEventArgs args){
-        mediaElementRef.Play();
-        InitializePropertyValues();
+    private void ThumbStart_DragDelta(object sender, DragDeltaEventArgs e)
+    {
+        double newLeft = Math.Max(0, ThumbStart.Margin.Left + e.HorizontalChange);
+        double endLeft = ThumbEnd.Margin.Left;
+
+        if (newLeft > endLeft) newLeft = endLeft;
+
+        ThumbStart.Margin = new Thickness(newLeft, 0, 0, 0);
+        UpdateTrimRange();
     }
 
-    // Pause the media.
-    private void OnMouseDownPauseMedia(object sender, MouseButtonEventArgs args){
-        mediaElementRef.Pause();
+    private void ThumbEnd_DragDelta(object sender, DragDeltaEventArgs e)
+    {
+        double newLeft = Math.Min(ThreeThumbSlider.ActualWidth - ThumbEnd.Width, ThumbEnd.Margin.Left + e.HorizontalChange);
+        double startLeft = ThumbStart.Margin.Left;
+
+        if (newLeft < startLeft) newLeft = startLeft;
+
+        ThumbEnd.Margin = new Thickness(newLeft, 0, 0, 0);
+        this.Title = $"{newLeft}";
+        UpdateTrimRange();
     }
 
-    // Stop the media.
-    private void OnMouseDownStopMedia(object sender, MouseButtonEventArgs args){
-        mediaElementRef.Stop();
+    private void ThumbCurrent_DragDelta(object sender, DragDeltaEventArgs e)
+    {
+        double newLeft = ThumbCurrent.Margin.Left + e.HorizontalChange;
+        double min = ThumbStart.Margin.Left;
+        double max = ThumbEnd.Margin.Left;
+
+        newLeft = Math.Max(min, Math.Min(max, newLeft)); // Clamp to trim range
+
+        ThumbCurrent.Margin = new Thickness(newLeft, 0, 0, 0);
+        // TODO: Update media playback position based on newLeft
     }
 
-    // When the media opens, initialize the "Seek To" slider maximum value
-    // to the total number of miliseconds in the length of the media clip.
-    private void Element_MediaOpened(object sender, EventArgs e){
+    private void UpdateTrimRange()
+    {
+        double start = ThumbStart.Margin.Left;
+        double end = ThumbEnd.Margin.Left;
+
+        TrimRange.Margin = new Thickness(start, 0, 0, 0);
+        TrimRange.Width = end - start;
+    }
+
+
+
+
+    private void MediaOpened(object sender, EventArgs e){
        //timelineSlider.Maximum = mediaElement.NaturalDuration.TimeSpan.TotalMilliseconds;
     }
 
-    // When the media playback is finished. Stop() the media to seek to media start.
-    private void Element_MediaEnded(object sender, EventArgs e){
+    private void MediaEnded(object sender, EventArgs e){
         mediaElementRef.Pause();
         isPaused = true;
         isOver = true;
