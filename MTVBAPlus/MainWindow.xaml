@@ -1,0 +1,21 @@
+﻿<Window x:Class="MTVBAPlus.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:MTVBAPlus"
+        mc:Ignorable="d"
+        Title="MainWindow" Width="1280" Height="750"
+        SizeChanged="WindowSizeChanged">
+    <Grid Background="Black">
+        <MediaElement 
+            Name="mediaElement" 
+            Source="C:\Users\awclo\Desktop\GitHub\MTVBAPlus\MTVBAPlus\TestVideos\short.mp4" 
+            Volume="1" 
+            MouseLeftButtonUp="TogglePlayback"
+            LoadedBehavior="Manual" 
+            UnloadedBehavior="Stop" 
+            MediaOpened="Element_MediaOpened" 
+            MediaEnded="Element_MediaEnded"/>
+  </Grid>
+</Window>
