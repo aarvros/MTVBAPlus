@@ -77,7 +77,7 @@ public partial class MainWindow : Window
     }
 
     private void MediaOpened(object sender, EventArgs e){
-        rangeSlider = new RangeSlider(thumbStart, thumbCurrent, thumbEnd, (int)threeThumbSlider.ActualWidth-12);   // Initialize Range Slider. 12 is the width of the selector
+        rangeSlider = new RangeSlider(thumbStart, thumbCurrent, thumbEnd, trimRange, (int)threeThumbSlider.ActualWidth-12);   // Initialize Range Slider. 12 is the width of the selector
        //timelineSlider.Maximum = mediaElement.NaturalDuration.TimeSpan.TotalMilliseconds;
     }
 
