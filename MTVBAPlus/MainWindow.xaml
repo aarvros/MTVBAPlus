@@ -52,6 +52,7 @@
             Name="mediaElement" 
             Source="C:\Users\awclo\Desktop\GitHub\MTVBAPlus\MTVBAPlus\TestVideos\short.mp4" 
             Volume="1" 
+            ScrubbingEnabled="True"
             MouseLeftButtonUp="TogglePlayback"
             LoadedBehavior="Manual" 
             UnloadedBehavior="Stop" 
@@ -82,18 +83,18 @@
                     <RowDefinition Height="40"/>
                 </Grid.RowDefinitions>  
 
-                <Grid x:Name="ThreeThumbSlider" Grid.Row="0" Height="20" Background="Transparent" Margin="10">
-                    <Rectangle Fill="Gray" Height="4" VerticalAlignment="Center" RadiusX="2" RadiusY="2"/>
+                <Grid x:Name="ThreeThumbSlider" Grid.Row="0" Height="40" Background="Transparent" Margin="10,0">
+                    <Rectangle Fill="Gray" Height="4" VerticalAlignment="Center" RadiusX="2" RadiusY="2" Margin="12,0"/>
                     <Rectangle x:Name="TrimRange" Fill="#5500AACC" Height="4" VerticalAlignment="Center"
                             HorizontalAlignment="Left" Margin="0,0,0,0" Width="0" RadiusX="2" RadiusY="2"/>
-                    <Thumb x:Name="ThumbStart" Width="12" Height="20" Background="White"
-                        BorderBrush="Black" BorderThickness="1" VerticalAlignment="Center"
+                    <Thumb x:Name="ThumbStart" Width="12" Height="40" Background="White"
+                        BorderBrush="Black" BorderThickness="1" VerticalAlignment="Center" DragStarted="DragStarted" DragCompleted="DragCompleted"
                         DragDelta="ThumbStart_DragDelta" HorizontalAlignment="Left" Margin="0,0,0,0"/>
-                    <Thumb x:Name="ThumbEnd" Width="12" Height="20" Background="White"
-                        BorderBrush="Black" BorderThickness="1" VerticalAlignment="Center"
+                    <Thumb x:Name="ThumbEnd" Width="12" Height="40" Background="White"
+                        BorderBrush="Black" BorderThickness="1" VerticalAlignment="Center" DragStarted="DragStarted" DragCompleted="DragCompleted"
                         DragDelta="ThumbEnd_DragDelta" HorizontalAlignment="Left" Margin="50,0,0,0"/>  <!--Hardcoded with of 900, bc we have to use margin as value-->
                     <Thumb x:Name="ThumbCurrent" Width="12" Height="20" Background="Red"
-                        BorderThickness="0" VerticalAlignment="Center"
+                        BorderThickness="0" VerticalAlignment="Center" DragStarted="DragStarted" DragCompleted="DragCompleted"
                         DragDelta="ThumbCurrent_DragDelta" HorizontalAlignment="Left" Margin="100,0,0,0"/>
                 </Grid>
                 <Label Content="00:00:00.000" Foreground="White" FontSize="15" Grid.Row="1" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,0"/>

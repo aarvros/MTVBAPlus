@@ -9,6 +9,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 
 namespace MTVBAPlus;
 
@@ -17,6 +18,7 @@ public partial class MainWindow : Window
     #pragma warning disable CS8618
     private RangeSlider rangeSlider;
     private MediaElement mediaElementRef;
+    private DispatcherTimer mediaTimer;
     private Rectangle topShadowRef;
     private Rectangle bottomShadowRef;
     private Grid threeThumbSlider;
@@ -24,12 +26,16 @@ public partial class MainWindow : Window
     private Thumb thumbStart;
     private Thumb thumbCurrent;
     private Thumb thumbEnd;
-    private bool isPaused = false;
+    private double mediaMsTotal;
+    public bool isPaused = false;
     private bool isOver = false;
+    public int mediaStartPos = 0;
+    public int mediaEndPos = 10000000;
 
     public MainWindow(){
         InitializeComponent();
         InitializeRefs();
+        InitializeTimer();
         PlayMedia();
     }
 
@@ -42,11 +48,19 @@ public partial class MainWindow : Window
         thumbStart = (FindName("ThumbStart") as Thumb)!;
         thumbCurrent = (FindName("ThumbCurrent") as Thumb)!;
         thumbEnd = (FindName("ThumbEnd") as Thumb)!;
+        Dispatcher.BeginInvoke(new Action(() =>{
+            rangeSlider = new RangeSlider(this, thumbStart, thumbCurrent, thumbEnd, trimRange, threeThumbSlider.ActualWidth-12);
+        }), System.Windows.Threading.DispatcherPriority.Background);
+    }
 
-        
+    private void InitializeTimer()
+    {
+        mediaTimer = new DispatcherTimer();
+        mediaTimer.Interval = TimeSpan.FromMilliseconds(100); // Update every 100ms
+        mediaTimer.Tick += MediaTimerTick;
     }
         
-    private void TogglePlayback(object sender, MouseButtonEventArgs args){
+    public void TogglePlayback(object sender, MouseButtonEventArgs args){
         if(isOver){
             RestartMedia();
         }else if(isPaused){
@@ -56,78 +70,77 @@ public partial class MainWindow : Window
         }
     }
     
-    private void PauseMedia(){
+    public void PauseMedia(){
+        mediaTimer.Stop();
         mediaElementRef.Pause();
         isPaused = true;
         // logic for overlayed pause icon
     }
 
-    private void PlayMedia(){
+    public void PlayMedia(){
         //logic for removing pause icon
         isPaused = false;
         mediaElementRef.Play();
+        mediaTimer.Start();
     }
 
-    private void RestartMedia(){    // called from TogglePlayback
+    public void RestartMedia(){    // called from TogglePlayback
         if(isOver){
             isOver = false;
-            mediaElementRef.Position = TimeSpan.Zero;
+            mediaElementRef.Position = TimeSpan.FromMilliseconds(mediaStartPos);
             PlayMedia();
         }
     }
 
+    private void MediaTimerTick(object? sender, EventArgs e){
+        double mediaMs = mediaElementRef.Position.TotalMilliseconds;
+        int mediaPos = Math.Min((int)(mediaMs / mediaMsTotal * 1000), 1000);    // media progress from 0-1000
+        rangeSlider.UpdateCurrThumb(mediaPos);
+
+        if(mediaPos >= mediaEndPos){
+            MediaEnded(mediaElementRef, new RoutedEventArgs());
+        }
+    }
+
     private void MediaOpened(object sender, EventArgs e){
-        rangeSlider = new RangeSlider(thumbStart, thumbCurrent, thumbEnd, trimRange, (int)threeThumbSlider.ActualWidth-12);   // Initialize Range Slider. 12 is the width of the selector
-       //timelineSlider.Maximum = mediaElement.NaturalDuration.TimeSpan.TotalMilliseconds;
+        Dispatcher.BeginInvoke(new Action(() =>{
+            mediaMsTotal = mediaElementRef.NaturalDuration.TimeSpan.TotalMilliseconds;
+        }), System.Windows.Threading.DispatcherPriority.Background);
     }
 
     private void MediaEnded(object sender, EventArgs e){
-        mediaElementRef.Pause();
+        PauseMedia();
+        mediaTimer.Stop();
         isPaused = true;
         isOver = true;
         topShadowRef.Visibility = Visibility.Visible;
         bottomShadowRef.Visibility = Visibility.Visible;
     }
 
-    // Jump to different parts of the media (seek to).
-    private void SeekToMediaPosition(object sender, RoutedPropertyChangedEventArgs<double> args){
-        //int SliderValue = (int)timelineSlider.Value;
-        //TimeSpan ts = new TimeSpan(0, 0, 0, 0, SliderValue);
-        //mediaElementRef.Position = ts;
+    private void DragStarted(object sender, DragStartedEventArgs e){
+        rangeSlider.DragStart();
     }
 
-    private void InitializePropertyValues(){
-        // Set the media's starting Volume and SpeedRatio to the current value of the
-        // their respective slider controls.
-        //mediaElement.Volume = (double)volumeSlider.Value;
-        //mediaElement.SpeedRatio = (double)speedRatioSlider.Value;
-    }
-
-    private double MapPositionToRange(double position, double maxPosition){
-        return position / maxPosition * 1000;
+    private void DragCompleted(object sender, DragCompletedEventArgs e){
+        rangeSlider.DragEnd();
     }
 
     private void ThumbStart_DragDelta(object sender, DragDeltaEventArgs e){
-        Title = rangeSlider.StartDragDelta(e).ToString();
-        //UpdateTrimRange();
+        rangeSlider.StartDragDelta(e);
     }
 
     private void ThumbEnd_DragDelta(object sender, DragDeltaEventArgs e){
-        Title = rangeSlider.EndDragDelta(e).ToString();
-        //UpdateTrimRange();
+        rangeSlider.EndDragDelta(e);
     }
 
     private void ThumbCurrent_DragDelta(object sender, DragDeltaEventArgs e){
-        Title = rangeSlider.CurrDragDelta(e).ToString();
-        // TODO: Update media playback position based on newLeft
+        rangeSlider.CurrDragDelta(e);
     }
 
-    private void UpdateTrimRange(){
-        double start = thumbStart.Margin.Left;
-        double end = thumbEnd.Margin.Left;
-
-        trimRange.Margin = new Thickness(start, 0, 0, 0);
-        trimRange.Width = end - start;
+    public void UpateMediaPosition(int position){
+        double mediaMs = Math.Max(0, position / 1000.0 * mediaMsTotal);
+        Title=$"{position} {mediaMs} {mediaMsTotal} {position / 1000.0 * mediaMsTotal}";
+        mediaElementRef.Position = TimeSpan.FromMilliseconds(mediaMs);
     }
 
     private void WindowMouseEnter(object sender, MouseEventArgs e){
