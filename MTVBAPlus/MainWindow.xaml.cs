@@ -14,14 +14,36 @@ namespace MTVBAPlus;
 
 public partial class MainWindow : Window
 {
+    #pragma warning disable CS8618
+    private RangeSlider rangeSlider;
     private MediaElement mediaElementRef;
+    private Rectangle topShadowRef;
+    private Rectangle bottomShadowRef;
+    private Grid threeThumbSlider;
+    private Rectangle trimRange;
+    private Thumb thumbStart;
+    private Thumb thumbCurrent;
+    private Thumb thumbEnd;
     private bool isPaused = false;
     private bool isOver = false;
 
     public MainWindow(){
         InitializeComponent();
+        InitializeRefs();
+        PlayMedia();
+    }
+
+    private void InitializeRefs(){
         mediaElementRef = (FindName("mediaElement") as MediaElement)!;
-        mediaElementRef.Play();
+        topShadowRef = (FindName("topShadow") as Rectangle)!;
+        bottomShadowRef = (FindName("bottomShadow") as Rectangle)!;
+        threeThumbSlider = (FindName("ThreeThumbSlider") as Grid)!;
+        trimRange = (FindName("TrimRange") as Rectangle)!;
+        thumbStart = (FindName("ThumbStart") as Thumb)!;
+        thumbCurrent = (FindName("ThumbCurrent") as Thumb)!;
+        thumbEnd = (FindName("ThumbEnd") as Thumb)!;
+
+        
     }
         
     private void TogglePlayback(object sender, MouseButtonEventArgs args){
@@ -54,54 +76,8 @@ public partial class MainWindow : Window
         }
     }
 
-    private void ThumbStart_DragDelta(object sender, DragDeltaEventArgs e)
-    {
-        double newLeft = Math.Max(0, ThumbStart.Margin.Left + e.HorizontalChange);
-        double endLeft = ThumbEnd.Margin.Left;
-
-        if (newLeft > endLeft) newLeft = endLeft;
-
-        ThumbStart.Margin = new Thickness(newLeft, 0, 0, 0);
-        UpdateTrimRange();
-    }
-
-    private void ThumbEnd_DragDelta(object sender, DragDeltaEventArgs e)
-    {
-        double newLeft = Math.Min(ThreeThumbSlider.ActualWidth - ThumbEnd.Width, ThumbEnd.Margin.Left + e.HorizontalChange);
-        double startLeft = ThumbStart.Margin.Left;
-
-        if (newLeft < startLeft) newLeft = startLeft;
-
-        ThumbEnd.Margin = new Thickness(newLeft, 0, 0, 0);
-        this.Title = $"{newLeft}";
-        UpdateTrimRange();
-    }
-
-    private void ThumbCurrent_DragDelta(object sender, DragDeltaEventArgs e)
-    {
-        double newLeft = ThumbCurrent.Margin.Left + e.HorizontalChange;
-        double min = ThumbStart.Margin.Left;
-        double max = ThumbEnd.Margin.Left;
-
-        newLeft = Math.Max(min, Math.Min(max, newLeft)); // Clamp to trim range
-
-        ThumbCurrent.Margin = new Thickness(newLeft, 0, 0, 0);
-        // TODO: Update media playback position based on newLeft
-    }
-
-    private void UpdateTrimRange()
-    {
-        double start = ThumbStart.Margin.Left;
-        double end = ThumbEnd.Margin.Left;
-
-        TrimRange.Margin = new Thickness(start, 0, 0, 0);
-        TrimRange.Width = end - start;
-    }
-
-
-
-
     private void MediaOpened(object sender, EventArgs e){
+        rangeSlider = new RangeSlider(thumbStart, thumbCurrent, thumbEnd, (int)threeThumbSlider.ActualWidth-12);   // Initialize Range Slider. 12 is the width of the selector
        //timelineSlider.Maximum = mediaElement.NaturalDuration.TimeSpan.TotalMilliseconds;
     }
 
@@ -109,6 +85,8 @@ public partial class MainWindow : Window
         mediaElementRef.Pause();
         isPaused = true;
         isOver = true;
+        topShadowRef.Visibility = Visibility.Visible;
+        bottomShadowRef.Visibility = Visibility.Visible;
     }
 
     // Jump to different parts of the media (seek to).
@@ -125,10 +103,47 @@ public partial class MainWindow : Window
         //mediaElement.SpeedRatio = (double)speedRatioSlider.Value;
     }
 
+    private double MapPositionToRange(double position, double maxPosition){
+        return position / maxPosition * 1000;
+    }
+
+    private void ThumbStart_DragDelta(object sender, DragDeltaEventArgs e){
+        Title = rangeSlider.StartDragDelta(e).ToString();
+        //UpdateTrimRange();
+    }
+
+    private void ThumbEnd_DragDelta(object sender, DragDeltaEventArgs e){
+        Title = rangeSlider.EndDragDelta(e).ToString();
+        //UpdateTrimRange();
+    }
+
+    private void ThumbCurrent_DragDelta(object sender, DragDeltaEventArgs e){
+        Title = rangeSlider.CurrDragDelta(e).ToString();
+        // TODO: Update media playback position based on newLeft
+    }
+
+    private void UpdateTrimRange(){
+        double start = thumbStart.Margin.Left;
+        double end = thumbEnd.Margin.Left;
+
+        trimRange.Margin = new Thickness(start, 0, 0, 0);
+        trimRange.Width = end - start;
+    }
+
+    private void WindowMouseEnter(object sender, MouseEventArgs e){
+        topShadowRef.Visibility = Visibility.Visible;
+        bottomShadowRef.Visibility = Visibility.Visible;
+    }
+
+    private void WindowMouseExit(object sender, MouseEventArgs e){
+        topShadowRef.Visibility = Visibility.Hidden;
+        bottomShadowRef.Visibility = Visibility.Hidden;
+    }
+
     private void WindowSizeChanged(object sender, SizeChangedEventArgs e){
         double newWidth = e.NewSize.Width;
         double newHeight = e.NewSize.Height;
 
-        this.Title = $"{newWidth} x {newHeight}";
+        Title = $"{newWidth} x {newHeight}";
     }
 }

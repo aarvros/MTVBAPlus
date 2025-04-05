@@ -7,7 +7,10 @@
         xmlns:local="clr-namespace:MTVBAPlus"
         mc:Ignorable="d"
         Title="MainWindow" Width="1280" Height="750"
-        SizeChanged="WindowSizeChanged">
+        SizeChanged="WindowSizeChanged"
+        MouseEnter="WindowMouseEnter"
+        MouseLeave="WindowMouseExit"
+        >
 
     <Window.Resources>
         <Style x:Key="RoundedButtonStyle" TargetType="Button" BasedOn="{x:Null}">
@@ -54,6 +57,9 @@
             UnloadedBehavior="Stop" 
             MediaOpened="MediaOpened" 
             MediaEnded="MediaEnded"/>
+
+        <Rectangle Name="topShadow" VerticalAlignment="Top" Margin="0" Height="120" Opacity="0.5" Fill="Black" IsHitTestVisible="False"/>
+        <Rectangle Name="bottomShadow" VerticalAlignment="Bottom" Margin="0" Height="120" Opacity="0.5" Fill="Black" IsHitTestVisible="False"/>
         
         <Grid HorizontalAlignment="Stretch" VerticalAlignment="Bottom" Margin="20" Height="80" Panel.ZIndex="2">
             <Grid.ColumnDefinitions>
@@ -85,13 +91,13 @@
                         DragDelta="ThumbStart_DragDelta" HorizontalAlignment="Left" Margin="0,0,0,0"/>
                     <Thumb x:Name="ThumbEnd" Width="12" Height="20" Background="White"
                         BorderBrush="Black" BorderThickness="1" VerticalAlignment="Center"
-                        DragDelta="ThumbEnd_DragDelta" HorizontalAlignment="Left" Margin="947,0,0,0"/>  <!--Width of bar at this window size-->
-                    <Thumb x:Name="ThumbCurrent" Width="10" Height="20" Background="Red"
+                        DragDelta="ThumbEnd_DragDelta" HorizontalAlignment="Left" Margin="50,0,0,0"/>  <!--Hardcoded with of 900, bc we have to use margin as value-->
+                    <Thumb x:Name="ThumbCurrent" Width="12" Height="20" Background="Red"
                         BorderThickness="0" VerticalAlignment="Center"
-                        DragDelta="ThumbCurrent_DragDelta" HorizontalAlignment="Left" Margin="0,0,0,0"/>
+                        DragDelta="ThumbCurrent_DragDelta" HorizontalAlignment="Left" Margin="100,0,0,0"/>
                 </Grid>
-                <Label Content="Hello Start!" Foreground="White" FontSize="15" Grid.Row="1" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,0"/>
-                <Label Content="Hello End!" Foreground="White" FontSize="15" Grid.Row="1" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="10,0"/>
+                <Label Content="00:00:00.000" Foreground="White" FontSize="15" Grid.Row="1" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,0"/>
+                <Label Content="00:00:00.000" Foreground="White" FontSize="15" Grid.Row="1" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="10,0"/>
             </Grid>            
             
             <Button 
