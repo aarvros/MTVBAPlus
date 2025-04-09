@@ -14,16 +14,20 @@ public partial class RangeSlider
     public int currPos;
     public int endPos;
     private double maxCanvasPosition;
-    private bool unpauseAfterDragging;
-    public RangeSlider(MainWindow mainWindow, Thumb startThumb, Thumb currThumb, Thumb endThumb, Rectangle trimRange, double maxCanvasPosition){
+    private bool unpauseAfterDragging = true;
+    private int prevPosition = 0;
+    public RangeSlider(MainWindow mainWindow, double maxCanvasPosition){
         this.mainWindow = mainWindow;
-        this.startThumb = startThumb;
-        this.currThumb = currThumb;
-        this.endThumb = endThumb;
-        this.trimRange = trimRange;
+        startThumb = mainWindow.thumbStart;
+        currThumb = mainWindow.thumbCurrent;
+        endThumb = mainWindow.thumbEnd;
+        trimRange = mainWindow.trimRange;
         this.maxCanvasPosition = maxCanvasPosition;     // resizing the window will cause issues
-        unpauseAfterDragging = true;
 
+        ResetThumbs();
+    }
+
+    public void ResetThumbs(){
         startThumb.Margin = new Thickness(0,0,0,0);
         currThumb.Margin = new Thickness(0,0,0,0);
         endThumb.Margin = new Thickness(maxCanvasPosition,0,0,0);
@@ -42,14 +46,6 @@ public partial class RangeSlider
         return position / 1000.0 * maxCanvasPosition;
     }
 
-    public bool UpdateCurrThumb(int position){  // incoming position is the mediaPlayer.Time mapped from time to position 0-1000
-        bool stopMedia = position >= endPos;    // stops the media if it runs over the ending position. PlayMedia is responsible for setting start time to startpos
-        double margin = MapPositionToMargin(position);
-        currThumb.Margin = new Thickness(margin,0,0,0);
-        SnapCurrThumbToBounds();
-        return stopMedia;
-    }
-
     public void DragStart(){
         unpauseAfterDragging = !mainWindow.isPaused;
         mainWindow.PauseMedia();
@@ -59,6 +55,19 @@ public partial class RangeSlider
         if(unpauseAfterDragging){
             mainWindow.PlayMedia();
         }
+    }
+
+    public void EndThumbDragStart(){
+        prevPosition = currPos;         // save play head pos on drag start
+        mainWindow.Title = $"Start: {currPos} {prevPosition}";
+        DragStart();                    // continue with normal drag start
+    }
+
+    public void EndThumbDragEnd(){
+        mainWindow.Title = $"End: {currPos} {prevPosition}";
+        mainWindow.UpateMediaPosition(prevPosition);    // change media position back to prev position
+        SnapCurrThumbToBounds();
+        DragEnd();                                      // continue with normal drag end
     }
 
     public void StartDragDelta(DragDeltaEventArgs e){
@@ -81,27 +90,36 @@ public partial class RangeSlider
         currThumb.Margin = new Thickness(newLeft,0,0,0);
         currPos = MapMarginToPosition(currThumb);
         mainWindow.UpateMediaPosition(currPos);
+        mainWindow.isOver = false;              // when dragging the play head after media ending, unflag as over
     }
 
-    public void EndDragDelta(DragDeltaEventArgs e){
+    public void EndDragDelta(DragDeltaEventArgs e){     // dont snap play head to end thumb, but still snap media pos for scrubbing
         double newLeft = Math.Min(endThumb.Margin.Left + e.HorizontalChange, maxCanvasPosition);
         newLeft = Math.Max(startThumb.Margin.Left, newLeft);
         endThumb.Margin = new Thickness(newLeft,0,0,0);
         endPos = MapMarginToPosition(endThumb);
-        currThumb.Margin = new Thickness(endThumb.Margin.Left,0,0,0);
-        currPos = MapMarginToPosition(currThumb);
         mainWindow.mediaEndPos = endPos;
-        mainWindow.UpateMediaPosition(currPos);
+        mainWindow.UpateMediaPosition(endPos);
+        mainWindow.isOver = false;
         SnapCurrThumbToBounds();
         UpdateTrimRange();
     }
 
-    public void SnapCurrThumbToBounds(){
+    public bool UpdateCurrThumb(int position){  // incoming position is the mediaPlayer.Time mapped from time to position 0-1000
+        bool stopMedia = position >= endPos;    // stops the media if it runs over the ending position. PlayMedia is responsible for setting start time to startpos
+        double margin = MapPositionToMargin(position);
+        currThumb.Margin = new Thickness(margin,0,0,0);
+        currPos = position;
+        SnapCurrThumbToBounds(mediaSnapSource: true);
+        return stopMedia;
+    }
+
+    public void SnapCurrThumbToBounds(bool mediaSnapSource = false){
         double currThumbPos = currThumb.Margin.Left;
         double newLeft = Math.Min(currThumbPos, endThumb.Margin.Left);
         newLeft = Math.Max(startThumb.Margin.Left, newLeft);
 
-        if(currThumbPos != newLeft){
+        if(currThumbPos != newLeft && !mediaSnapSource){    // checks if the snap call if from MediaTimerTick UpdateCurrThumb. If so, stop it from cycling due to UpateMediaPosition
             currThumb.Margin = new Thickness(newLeft,0,0,0);
             currPos = MapMarginToPosition(currThumb);   
             mainWindow.UpateMediaPosition(currPos);
