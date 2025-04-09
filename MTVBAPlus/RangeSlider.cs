@@ -1,7 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using System.Windows.Shapes;
 using MTVBAPlus;
 
 public partial class RangeSlider
@@ -94,7 +93,6 @@ public partial class RangeSlider
         SetStartMarginFromPosition(startPos);
         mainWindow.mediaStartPos = startPos;
         PlaySliderValueChanged(startPos);       // drags the slider thumb with it. Does not do this on end thumb intentionally
-        mainWindow.Title = $"{sliderWidth} {newMargin} {sliderMax} {startPos}";
     }
 
 
@@ -106,27 +104,5 @@ public partial class RangeSlider
         SetEndMarginFromPosition(endPos);
         mainWindow.mediaEndPos = endPos;
         mainWindow.UpdateMediaPosition(endPos);
-        mainWindow.Title = $"{sliderWidth} {newMargin} {sliderMax} {endPos}";
-
-
-        //double newLeft = Math.Min(endThumb.Margin.Left + e.HorizontalChange, sliderWidth);
-        //newLeft = Math.Max(startThumb.Margin.Left, newLeft);
-        //endThumb.Margin = new Thickness(newLeft,0,0,0);
-        //endPos = GetEndThumbPositionFromMargin();
-        //mainWindow.Title = $"{sliderWidth} {newLeft} {endPos}";
-        //mainWindow.mediaEndPos = endPos;
-        //mainWindow.UpdateMediaPosition(endPos);
-        //mainWindow.isOver = false;
-        //SnapCurrThumbToBounds();
-    }
-
-    public bool UpdateCurrThumb(int position){  // incoming position is the mediaPlayer.Time mapped from time to position 0-1000
-        //bool stopMedia = position >= endPos;    // stops the media if it runs over the ending position. PlayMedia is responsible for setting start time to startpos
-        //double margin = MapPositionToMargin(position);
-        //currThumb.Margin = new Thickness(margin,0,0,0);
-        //currPos = position;
-        //SnapCurrThumbToBounds(mediaSnapSource: true);
-        //return stopMedia;
-        return false;
     }
 }

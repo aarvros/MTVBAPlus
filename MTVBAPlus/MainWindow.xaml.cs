@@ -43,8 +43,8 @@ public partial class MainWindow : Window
             initialVideoPath = args[0];
         }else{
             string? filePath = GetVideoFromFileDialog();
-            if(filePath == null){return;}
-            initialVideoPath = filePath;
+            if(filePath == null){Close();}
+            initialVideoPath = filePath!;
         }
 
         InitializeComponent();
@@ -56,15 +56,15 @@ public partial class MainWindow : Window
 
     private string? GetVideoFromFileDialog(){
         OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Title = "Select mp4";
-            openFileDialog.Filter = "MP4 files (*.mp4)|*.mp4|All files (*.*)|*.*";
-            openFileDialog.DefaultExt = "mp4";
-            bool? result = openFileDialog.ShowDialog();
-            if(result != true){
-                return null;
-            }else{
-                return openFileDialog.FileName;
-            }
+        openFileDialog.Title = "Select mp4";
+        openFileDialog.Filter = "MP4 files (*.mp4)|*.mp4|All files (*.*)|*.*";
+        openFileDialog.DefaultExt = "mp4";
+        bool? result = openFileDialog.ShowDialog();
+        if(result != true){
+            return null;
+        }else{
+            return openFileDialog.FileName;
+        }
     }
 
     private void InitializeRefs(){
@@ -183,7 +183,6 @@ public partial class MainWindow : Window
         rangeSlider.PlaySliderValueChanged(mediaPos);
         mediaControllingSlider = false;
 
-        Title = $"{mediaPos} {mediaEndPos}";
         if(mediaPos >= mediaEndPos){
             MediaEnded(mediaElementRef, new RoutedEventArgs());
         }
