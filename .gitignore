@@ -55,3 +55,4 @@ nunit-*.xml
 
 # Custom
 TestVideos/
+ffmpeg.exe
