@@ -37,7 +37,7 @@ public partial class MainWindow : Window
     private string[] videoFiles;
     private int currentVideoIndex;
 
-    public MainWindow(string[] args){
+    public MainWindow(string[] args){   // https://github.com/skeskinen/smartcut    take a look at this instead of using ffmpeg
         string initialVideoPath;
         if(args.Length > 0){
             initialVideoPath = args[0];
