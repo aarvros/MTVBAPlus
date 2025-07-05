@@ -47,6 +47,22 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+        <Style x:Key="BigCircularThumbStyle" TargetType="Thumb">
+            <Setter Property="Width" Value="20"/>
+            <Setter Property="Height" Value="20"/>
+            <Setter Property="Background" Value="Gray"/>
+            <Setter Property="BorderBrush" Value="Cyan"/>
+            <Setter Property="BorderThickness" Value="6"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Ellipse Fill="{TemplateBinding Background}" 
+                                Stroke="{TemplateBinding BorderBrush}" 
+                                StrokeThickness="3"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
     
     <Grid Background="Black">
@@ -78,21 +94,52 @@
                 <Label Name="startTS" Content="00:00:00.000" Foreground="White" FontSize="12" Grid.Row="0" HorizontalAlignment="Left" VerticalAlignment="Center" Height="40" Margin="0,0,0,0"/>
                 <Label Name="headTS" Content="00:00:00.000" Foreground="White" FontSize="12" Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center" Height="40" Margin="0,0,0,0"/>
                 <Label Name="endTS" Content="00:00:00.000" Foreground="White" FontSize="12" Grid.Row="0" HorizontalAlignment="Right" VerticalAlignment="Center" Height="40" Margin="0,0,0,0"/>
-
-                <Slider 
-                    Name="playSlider" 
-                    Maximum="10000" 
-                    SmallChange="50"
-                    LargeChange="500"
-                    ValueChanged="playSliderValueChanged"
-                    VerticalAlignment="Center"
-                    Grid.Row="1" Height="20" Margin="0,0,6,0" Foreground="Red" Background="Transparent" BorderThickness="2"/>
-                <Thumb x:Name="ThumbStart" Grid.Row="1" Width="12" Height="40" Background="White"
-                    BorderBrush="Black" BorderThickness="1" VerticalAlignment="Top" DragStarted="ThumbDragStarted" DragCompleted="ThumbDragCompleted"
-                    DragDelta="ThumbStart_DragDelta" HorizontalAlignment="Left" Margin="0,0,0,0" Panel.ZIndex="4"/>
-                <Thumb x:Name="ThumbEnd" Grid.Row="1" Width="12" Height="40" Background="White"
-                    BorderBrush="Black" BorderThickness="1" VerticalAlignment="Center" DragStarted="ThumbDragStarted" DragCompleted="ThumbDragCompleted"
-                    DragDelta="ThumbEnd_DragDelta" HorizontalAlignment="Left" Margin="0,0,0,0" Panel.ZIndex="4"/>
+                
+                <Grid Grid.Row="1" Margin="0,0,6,0" VerticalAlignment="Center">
+                    <Canvas x:Name="MarkerCanvas" IsHitTestVisible="False">
+                        <Line x:Name="StartMarker"
+                            Stroke="Red"
+                            StrokeThickness="2"
+                            Y1="-5" Y2="25"
+                            Canvas.Left="-100"/>
+                        <Line x:Name="EndMarker"
+                            Stroke="Red"
+                            StrokeThickness="2"
+                            Y1="-5" Y2="25"
+                            Canvas.Left="-100"/>
+                    </Canvas>
+                    <Slider 
+                        Name="playSlider" 
+                        Maximum="{Binding MediaDurationInMs}"
+                        VerticalAlignment="Center"
+                        Grid.Row="1" 
+                        Height="20" 
+                        Margin="0,0,6,0" 
+                        Foreground="Transparent" 
+                        Background="Transparent" 
+                        BorderThickness="6">
+                        
+                        <Slider.Template>
+                            <ControlTemplate TargetType="Slider">
+                                <Grid>
+                                    <Rectangle Height="4"
+                                        Fill="Gray"
+                                        VerticalAlignment="Center"
+                                        RadiusX="2" RadiusY="2"
+                                        Margin="4,0"/>
+                                    <Track x:Name="PART_Track"
+                                        Maximum="{TemplateBinding Maximum}"
+                                        Minimum="{TemplateBinding Minimum}"
+                                        Value="{TemplateBinding Value}">
+                                        <Track.Thumb>
+                                            <Thumb Style="{StaticResource BigCircularThumbStyle}" />
+                                        </Track.Thumb>
+                                    </Track>
+                                </Grid>
+                            </ControlTemplate>
+                        </Slider.Template>
+                    </Slider>
+                </Grid>
             </Grid>
 
             <Grid Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="0,0" Height="40">
@@ -100,14 +147,22 @@
                     <ColumnDefinition Width="100"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="50"/>
+                    <ColumnDefinition Width="50"/>
+                    <ColumnDefinition Width="50"/>
+                    <ColumnDefinition Width="50"/>
+                    <ColumnDefinition Width="50"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="100"/>
                 </Grid.ColumnDefinitions>  
 
                 <Button Name = "PrevButton" Content="⟵" Click="LoadPrevVideo" FontSize="15" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Width="40" Height="30" Margin="5" Foreground="White" Background="Transparent" BorderBrush="White" BorderThickness="2"/>
-                <Button Content="||" Click="TogglePlayback" FontSize="15" Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center" Width="40" Height="30" Margin="5" Foreground="White" Background="Transparent" BorderBrush="White" BorderThickness="2"/>
-                <Button Name = "NextButton" Content="⟶" Click="LoadNextVideo" FontSize="15" Grid.Column="3" HorizontalAlignment="Left" VerticalAlignment="Center" Width="40" Height="30" Margin="5" Foreground="White" Background="Transparent" BorderBrush="White" BorderThickness="2"/>
-                <Button Content="Trim" Click="TrimVideo" FontSize="15" Grid.Column="4" HorizontalAlignment="Right" VerticalAlignment="Center" Height="30" Margin="5" Padding="10,0" Foreground="White" Background="Transparent" BorderBrush="White" BorderThickness="2"/>
+                <Button Content="Set" Click="SetStartPos" FontSize="15" Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center" Width="40" Height="30" Margin="5" Foreground="White" Background="Transparent" BorderBrush="White" BorderThickness="2"/>
+                <Button Content="X" Click="UnsetStartPos" FontSize="15" Grid.Column="3" HorizontalAlignment="Center" VerticalAlignment="Center" Width="40" Height="30" Margin="5" Foreground="White" Background="Transparent" BorderBrush="White" BorderThickness="2"/>
+                <Button Content="II" Click="TogglePlayback" FontSize="15" Grid.Column="4" HorizontalAlignment="Center" VerticalAlignment="Center" Width="40" Height="30" Margin="5" Foreground="White" Background="Transparent" BorderBrush="White" BorderThickness="2"/>
+                <Button Content="Set" Click="SetEndPos" FontSize="15" Grid.Column="5" HorizontalAlignment="Center" VerticalAlignment="Center" Width="40" Height="30" Margin="5" Foreground="White" Background="Transparent" BorderBrush="White" BorderThickness="2"/>
+                <Button Content="X" Click="UnsetEndPos" FontSize="15" Grid.Column="6" HorizontalAlignment="Center" VerticalAlignment="Center" Width="40" Height="30" Margin="5" Foreground="White" Background="Transparent" BorderBrush="White" BorderThickness="2"/>
+                <Button Name = "NextButton" Content="⟶" Click="LoadNextVideo" FontSize="15" Grid.Column="7" HorizontalAlignment="Left" VerticalAlignment="Center" Width="40" Height="30" Margin="5" Foreground="White" Background="Transparent" BorderBrush="White" BorderThickness="2"/>
+                <Button Content="Trim" Click="TrimVideo" FontSize="15" Grid.Column="8" HorizontalAlignment="Right" VerticalAlignment="Center" Height="30" Margin="5" Padding="10,0" Foreground="White" Background="Transparent" BorderBrush="White" BorderThickness="2"/>
             </Grid>
         </Grid>
     </Grid>

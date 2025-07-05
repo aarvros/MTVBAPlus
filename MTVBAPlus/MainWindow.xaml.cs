@@ -13,29 +13,29 @@ namespace MTVBAPlus;
 public partial class MainWindow : Window
 {
     #pragma warning disable CS8618
-    private RangeSlider rangeSlider;
     private MediaElement mediaElementRef;
     private DispatcherTimer mediaTimer;
     private Rectangle topShadowRef;
     private Rectangle bottomShadowRef;
     private Label mediaTitleRef;
     public Slider playSliderRef;
-    public Thumb thumbStart;
-    public Thumb thumbCurrent;
-    public Thumb thumbEnd;
     public Label startTSLabel;
     public Label headTSLabel;
     public Label endTSLabel;
+    public Line startMarker;
+    public Line endMarker;
     private Button prevButtonRef;
     private Button nextButtonRef;
     private double mediaMsTotal;
+    public bool isDragging;
+    public bool unpauseAfterDragging;
     public bool isPaused = false;
     public bool isOver = false;
-    public bool mediaControllingSlider = false;
-    public int mediaStartPos = 0;
-    public int mediaEndPos = 10000000;
+    public double mediaStartMs = 0;
+    public double mediaEndMs = 10000000;
     private string[] videoFiles;
     private int currentVideoIndex;
+    private string ffmpegPath;
 
     public MainWindow(string[] args){   // https://github.com/skeskinen/smartcut    take a look at this instead of using ffmpeg
         string initialVideoPath;
@@ -47,6 +47,7 @@ public partial class MainWindow : Window
             initialVideoPath = filePath!;
         }
 
+        ffmpegPath = FFmpegHelper.ExtractFfmpeg();
         InitializeComponent();
         InitializeRefs();
         InitializeVideoFolder(initialVideoPath);
@@ -73,11 +74,11 @@ public partial class MainWindow : Window
         bottomShadowRef = (FindName("bottomShadow") as Rectangle)!;
         mediaTitleRef = (FindName("mediaTitle") as Label)!;
         //playSliderRef = (FindName("playSlider") as Slider)!;
-        thumbStart = (FindName("ThumbStart") as Thumb)!;
-        thumbEnd = (FindName("ThumbEnd") as Thumb)!;
         startTSLabel = (FindName("startTS") as Label)!;
         headTSLabel = (FindName("headTS") as Label)!;
         endTSLabel = (FindName("endTS") as Label)!;
+        startMarker = (FindName("StartMarker") as Line)!;
+        EndMarker = (FindName("EndMarker") as Line)!;
         prevButtonRef = (FindName("PrevButton") as Button)!;
         nextButtonRef = (FindName("NextButton") as Button)!;
     }
@@ -111,8 +112,6 @@ public partial class MainWindow : Window
     private void InitializeMedia(string videoPath){
         PauseMedia();
         isOver = false;
-        mediaStartPos = 0;
-        mediaEndPos = 100000000;
         mediaElementRef.Source = new Uri(videoPath);
         mediaTitleRef.Content = System.IO.Path.GetFileName(videoPath);
         Dispatcher.BeginInvoke(new Action(() =>{
@@ -121,16 +120,59 @@ public partial class MainWindow : Window
             Panel.SetZIndex(thumb, 5);
             thumb.DragStarted += SliderDragStarted;
             thumb.DragCompleted += SliderDragCompleted;
-            rangeSlider = new RangeSlider(this);   // for some reason, rangeSlider isnt init here yet? Just make a new one each media switch
+            //rangeSlider = new RangeSlider(this);   // for some reason, rangeSlider isnt init here yet? Just make a new one each media switch
         }), DispatcherPriority.Background);
         PlayMedia();
     }
 
-    private void InitializeTimer()
-    {
+    private void MediaOpened(object sender, EventArgs e){
+        Dispatcher.BeginInvoke(new Action(() =>{
+            mediaMsTotal = mediaElementRef.NaturalDuration.TimeSpan.TotalMilliseconds;
+            mediaStartMs = 0;
+            mediaEndMs = mediaMsTotal;
+            playSliderRef.Maximum = mediaMsTotal;
+        }), DispatcherPriority.Background);
+        mediaTimer.Start();
+    }
+
+    private void InitializeTimer(){
         mediaTimer = new DispatcherTimer();
-        mediaTimer.Interval = TimeSpan.FromMilliseconds(100); // Update every 100ms
+        mediaTimer.Interval = TimeSpan.FromMilliseconds(1); // Update every 100ms
         mediaTimer.Tick += MediaTimerTick;
+    }
+
+    private void MediaTimerTick(object? sender, EventArgs e){
+        double mediaMs = mediaElementRef.Position.TotalMilliseconds;
+        headTSLabel.Content = TimeSpan.FromMilliseconds(mediaMs).ToString(@"hh\:mm\:ss\.fff");
+
+        if(!isDragging){
+            SetPlaySliderValue(mediaMs);
+            headTSLabel.Content = TimeSpan.FromMilliseconds(mediaElementRef.Position.TotalMilliseconds).ToString(@"hh\:mm\:ss\.fff");
+        }else{
+            UpdateMediaPosition(playSliderRef.Value);
+        }
+
+        if(!isDragging && mediaMs >= mediaEndMs){
+            PauseMedia();
+            isOver = true;
+            topShadowRef.Visibility = Visibility.Visible;
+            bottomShadowRef.Visibility = Visibility.Visible;
+        }
+    }
+
+    public void SetPlaySliderValue(double newValue){
+        newValue = Math.Max(mediaStartMs, newValue);    // clamp min value to start position
+        newValue = Math.Min(newValue, mediaEndMs);      // clamp max value to end position
+        playSlider.Value = newValue;
+        if(isDragging){
+            UpdateMediaPosition(newValue);
+        }
+    }
+
+    public void UpdateMediaPosition(double newValue){
+        newValue = Math.Max(mediaStartMs, newValue);
+        newValue = Math.Min(newValue, mediaEndMs);
+        mediaElementRef.Position = TimeSpan.FromMilliseconds(newValue);
     }
 
     public void TogglePlayback(object sender, RoutedEventArgs e){
@@ -152,103 +194,76 @@ public partial class MainWindow : Window
     }
     
     public void PauseMedia(){
-        mediaTimer.Stop();
         mediaElementRef.Pause();
         isPaused = true;
-        // logic for overlayed pause icon
     }
 
     public void PlayMedia(){
-        //logic for removing pause icon
         isPaused = false;
         mediaElementRef.Play();
-        mediaTimer.Start();
     }
 
     public void RestartMedia(){
         if(isOver){
             isOver = false;
-            double mediaMs = Math.Max(0, mediaStartPos / rangeSlider.sliderMax * mediaMsTotal);
+            double mediaMs = mediaStartMs;
             mediaElementRef.Position = TimeSpan.FromMilliseconds(mediaMs);
             PlayMedia();
         }
     }
 
-    private void MediaTimerTick(object? sender, EventArgs e){
-        double mediaMs = mediaElementRef.Position.TotalMilliseconds;
-        int mediaPos = (int)Math.Min((int)(mediaMs / mediaMsTotal * rangeSlider.sliderMax), rangeSlider.sliderMax); // media progress from 0-1000
-        headTSLabel.Content = TimeSpan.FromMilliseconds(mediaMs).ToString(@"hh\:mm\:ss\.fff");
-
-        mediaControllingSlider = true;
-        rangeSlider.PlaySliderValueChanged(mediaPos);
-        mediaControllingSlider = false;
-
-        if(mediaPos >= mediaEndPos){
-            MediaEnded(mediaElementRef, new RoutedEventArgs());
-        }
-    }
-
-    private void MediaOpened(object sender, EventArgs e){
-        Dispatcher.BeginInvoke(new Action(() =>{
-            mediaMsTotal = mediaElementRef.NaturalDuration.TimeSpan.TotalMilliseconds;
-        }), DispatcherPriority.Background);
-    }
-
-    private void MediaEnded(object sender, EventArgs e){
-        PauseMedia();
-        isOver = true;
-        topShadowRef.Visibility = Visibility.Visible;
-        bottomShadowRef.Visibility = Visibility.Visible;
-    }
-
-    private void playSliderValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e){
-        isOver = false;                              // any drag or change will reset isOver. Media over checks are done AFTER playSlider is updated
-        int newValue = (int)playSliderRef.Value;
-        rangeSlider.PlaySliderValueChanged(newValue);
-        headTSLabel.Content = TimeSpan.FromMilliseconds(mediaElementRef.Position.TotalMilliseconds).ToString(@"hh\:mm\:ss\.fff");
-    }
-
     private void SliderDragStarted(object? sender, DragStartedEventArgs e){
-        rangeSlider.DragStart();
+        isDragging = true;
+        isOver = false;
+        unpauseAfterDragging = !isPaused;
+        PauseMedia();
     }
 
     private void SliderDragCompleted(object? sender, DragCompletedEventArgs e){
-        rangeSlider.DragEnd();
-    }
-
-    private void ThumbDragStarted(object? sender, DragStartedEventArgs e){
-        Thumb senderThumb = (sender as Thumb)!;
-        if(senderThumb == thumbEnd){
-            rangeSlider.EndThumbDragStart();
-        }else{
-            rangeSlider.DragStart();
+        if(unpauseAfterDragging){
+            PlayMedia();
         }
+        isDragging = false;
     }
 
-    private void ThumbDragCompleted(object sender, DragCompletedEventArgs e){
-        Thumb senderThumb = (sender as Thumb)!;
-        if(senderThumb == thumbEnd){
-            rangeSlider.EndThumbDragEnd();
-        }else{
-            rangeSlider.DragEnd();
-        }
+    public void SetStartPos(object sender, RoutedEventArgs e){
+        double value = playSliderRef.Value;
+        mediaStartMs = value;
+        UpdateMarker(StartMarker, value);
+        startTSLabel.Content = TimeSpan.FromMilliseconds(value).ToString(@"hh\:mm\:ss\.fff");
     }
 
-    private void ThumbStart_DragDelta(object sender, DragDeltaEventArgs e){
-        rangeSlider.StartDragDelta(e);
-        double ms = Math.Max(0, rangeSlider.startPos / rangeSlider.sliderMax * mediaMsTotal);
-        startTSLabel.Content = TimeSpan.FromMilliseconds(ms).ToString(@"hh\:mm\:ss\.fff");
+    public void SetEndPos(object sender, RoutedEventArgs e){
+        double value = playSliderRef.Value;
+        mediaEndMs = value;
+        UpdateMarker(EndMarker, value);
+        endTSLabel.Content = TimeSpan.FromMilliseconds(value).ToString(@"hh\:mm\:ss\.fff");
     }
 
-    private void ThumbEnd_DragDelta(object sender, DragDeltaEventArgs e){
-        rangeSlider.EndDragDelta(e);
-        double ms = Math.Max(0, rangeSlider.endPos / rangeSlider.sliderMax * mediaMsTotal);
-        endTSLabel.Content = TimeSpan.FromMilliseconds(ms).ToString(@"hh\:mm\:ss\.fff");
+    public void UnsetStartPos(object sender, RoutedEventArgs e){
+        mediaStartMs = 0;
+        UpdateMarker(StartMarker, -5000);
+        startTSLabel.Content = TimeSpan.FromMilliseconds(0).ToString(@"hh\:mm\:ss\.fff");
     }
 
-    public void UpdateMediaPosition(int position){  // take a value from 0 to 1000
-        double mediaMs = Math.Max(0, position / rangeSlider.sliderMax * mediaMsTotal);
-        mediaElementRef.Position = TimeSpan.FromMilliseconds(mediaMs);
+    public void UnsetEndPos(object sender, RoutedEventArgs e){
+        mediaEndMs = mediaMsTotal;
+        UpdateMarker(EndMarker, 10000000000000000);
+        endTSLabel.Content = TimeSpan.FromMilliseconds(mediaMsTotal).ToString(@"hh\:mm\:ss\.fff");
+        isOver = false;     // Lets you continue playback without restarting
+    }
+
+    private void UpdateMarker(Line marker, double timeMs){
+        double max = playSliderRef.Maximum;
+        double width = playSliderRef.ActualWidth;
+
+        if (max <= 0 || width <= 0)
+            return;
+
+        double percent = timeMs / max;
+        double pos = percent * width;
+
+        Canvas.SetLeft(marker, pos + 10);
     }
 
     private void TrimVideo(object sender, EventArgs e){
@@ -273,30 +288,26 @@ public partial class MainWindow : Window
             return;
         }
 
-        TimeSpan start = TimeSpan.FromMilliseconds(Math.Max(0, mediaStartPos / 1000.0 * mediaMsTotal));
-        TimeSpan end = TimeSpan.FromMilliseconds(Math.Max(0, mediaEndPos / 1000.0 * mediaMsTotal));
-        TimeSpan duration = end - start;
-
-        string ffmpegPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffmpeg", "ffmpeg.exe");
-        string arguments = $"-i \"{inputPath}\" -ss {start} -t {duration} -c:v copy -c:a copy \"{fullPath}\"";
-
-        ProcessStartInfo processStartInfo = new ProcessStartInfo{
-            FileName = ffmpegPath,
-            Arguments = arguments,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        try{
-            using (Process process = Process.Start(processStartInfo)!){}
-            MessageBox.Show($"Successfully saved trim to {fullPath}", "Success!", MessageBoxButton.OK, MessageBoxImage.Information);
-        }catch (Exception ex){
-            MessageBox.Show($"Error running FFmpeg: {ex.Message}", "FFmpeg Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            Console.WriteLine("Error running FFmpeg: " + ex.Message);
-        }
+        StartTrimWithProgress(inputPath, fullPath, mediaStartMs, mediaEndMs);
     }
+
+    private void StartTrimWithProgress(string inputPath, string outputPath, double startMs, double endMs)
+    {
+        var loadingDialog = new LoadingDialog();
+        loadingDialog.Owner = this;
+
+        Task.Run(() =>
+        {
+            bool success = FFmpegHelper.TrimVideo(inputPath, outputPath, startMs, endMs);
+
+            Dispatcher.Invoke(() =>{
+                loadingDialog.Close();
+            });
+        });
+
+        loadingDialog.ShowDialog();
+    }
+
 
     private void WindowMouseEnter(object sender, MouseEventArgs e){
         topShadowRef.Visibility = Visibility.Visible;
