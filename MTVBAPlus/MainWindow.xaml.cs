@@ -32,7 +32,7 @@ public partial class MainWindow : Window
     public bool isPaused = false;
     public bool isOver = false;
     public double mediaStartMs = 0;
-    public double mediaEndMs = 10000000;
+    public double mediaEndMs = 1000000000000;
     private string[] videoFiles;
     private int currentVideoIndex;
     private string ffmpegPath;
@@ -128,8 +128,8 @@ public partial class MainWindow : Window
     private void MediaOpened(object sender, EventArgs e){
         Dispatcher.BeginInvoke(new Action(() =>{
             mediaMsTotal = mediaElementRef.NaturalDuration.TimeSpan.TotalMilliseconds;
-            mediaStartMs = 0;
-            mediaEndMs = mediaMsTotal;
+            UnsetStartPos(null, null);
+            UnsetEndPos(null, null);
             playSliderRef.Maximum = mediaMsTotal;
         }), DispatcherPriority.Background);
         mediaTimer.Start();
@@ -312,10 +312,12 @@ public partial class MainWindow : Window
     private void WindowMouseEnter(object sender, MouseEventArgs e){
         topShadowRef.Visibility = Visibility.Visible;
         bottomShadowRef.Visibility = Visibility.Visible;
+        mediaTitleRef.Visibility = Visibility.Visible;
     }
 
     private void WindowMouseExit(object sender, MouseEventArgs e){
         topShadowRef.Visibility = Visibility.Hidden;
         bottomShadowRef.Visibility = Visibility.Hidden;
+        mediaTitleRef.Visibility = Visibility.Hidden;
     }
 }

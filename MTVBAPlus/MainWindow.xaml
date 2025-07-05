@@ -79,7 +79,7 @@
         <Rectangle Name="bottomShadow" VerticalAlignment="Bottom" Margin="0" Height="140" Opacity="0.5" Fill="Black" IsHitTestVisible="False"/>
         <Label Name="mediaTitle" Content="Placeholder" Foreground="White" FontSize="30" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,30,0,0"/>
 
-        <Grid HorizontalAlignment="Stretch" VerticalAlignment="Bottom" Margin="20" Height="120" Panel.ZIndex="2">
+        <Grid Name="ContolsGrid" HorizontalAlignment="Stretch" VerticalAlignment="Bottom" Margin="20" Height="120" Panel.ZIndex="2">
             <Grid.RowDefinitions>
                 <RowDefinition Height="80"/>
                 <RowDefinition Height="40"/>
