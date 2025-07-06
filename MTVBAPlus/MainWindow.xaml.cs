@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.IO;
+﻿using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -26,11 +25,19 @@ public partial class MainWindow : Window
     public Line endMarker;
     private Button prevButtonRef;
     private Button nextButtonRef;
+    private Button b1r;
+    private Button b2r;
+    private Button b3r;
+    private Button b4r;
+    private Button b5r;
+    private Button trimButtonRef;
     private double mediaMsTotal;
     public bool isDragging;
     public bool unpauseAfterDragging;
     public bool isPaused = false;
     public bool isOver = false;
+    public bool prevHidden = false;
+    public bool nextHidden = false;
     public double mediaStartMs = 0;
     public double mediaEndMs = 1000000000000;
     private string[] videoFiles;
@@ -68,44 +75,78 @@ public partial class MainWindow : Window
         }
     }
 
-    private void InitializeRefs(){
+    private void InitializeRefs()
+    {
         mediaElementRef = (FindName("mediaElement") as MediaElement)!;
         topShadowRef = (FindName("topShadow") as Rectangle)!;
         bottomShadowRef = (FindName("bottomShadow") as Rectangle)!;
         mediaTitleRef = (FindName("mediaTitle") as Label)!;
-        //playSliderRef = (FindName("playSlider") as Slider)!;
         startTSLabel = (FindName("startTS") as Label)!;
         headTSLabel = (FindName("headTS") as Label)!;
         endTSLabel = (FindName("endTS") as Label)!;
         startMarker = (FindName("StartMarker") as Line)!;
-        EndMarker = (FindName("EndMarker") as Line)!;
+        endMarker = (FindName("EndMarker") as Line)!;
         prevButtonRef = (FindName("PrevButton") as Button)!;
         nextButtonRef = (FindName("NextButton") as Button)!;
-    }
+        b1r = (FindName("b1") as Button)!;
+        b2r = (FindName("b2") as Button)!;
+        b3r = (FindName("b3") as Button)!;
+        b4r = (FindName("b4") as Button)!;
+        b5r = (FindName("b5") as Button)!;
+        trimButtonRef = (FindName("TrimButton") as Button)!;
+
+        //Dispatcher.BeginInvoke(new Action(() =>{
+        playSliderRef = (FindName("playSlider") as Slider)!;
+        playSliderRef.Loaded += (s, e) =>
+        {
+            playSliderRef.ApplyTemplate();
+            playSliderRef.IsMoveToPointEnabled = true;
+            Track track = (playSliderRef.Template.FindName("PART_Track", playSliderRef) as Track)!;
+            Thumb thumb = track.Thumb;
+            track.PreviewMouseUp += TrackUp;
+            thumb.DragStarted += SliderDragStarted;
+            thumb.DragCompleted += SliderDragCompleted;
+        };
+        //}), DispatcherPriority.Background);
+        }
 
     private void InitializeVideoFolder(string initialVideoPath){
         string videoDirectory = System.IO.Path.GetDirectoryName(initialVideoPath)!;
         videoFiles = Directory.GetFiles(videoDirectory, "*.mp4").OrderBy(f => System.IO.Path.GetFileName(f)).ToArray();
         currentVideoIndex = Array.IndexOf(videoFiles, initialVideoPath);
-        if(currentVideoIndex <= 0){prevButtonRef.IsEnabled = false;}
-        if(currentVideoIndex >= videoFiles.Length-1){nextButtonRef.IsEnabled = false;}
+        if (currentVideoIndex <= 0)
+        {
+            prevHidden = true;
+            prevButtonRef.Visibility = Visibility.Collapsed;
+        }
+        if (currentVideoIndex >= videoFiles.Length - 1)
+        {
+            nextHidden = true;
+            nextButtonRef.Visibility = Visibility.Collapsed;
+        }
     }
 
     private void LoadPrevVideo(object sender, EventArgs e){
         currentVideoIndex--;
         if(currentVideoIndex <= 0){
-            prevButtonRef.IsEnabled = false;
+            prevHidden = true;
+            prevButtonRef.Visibility = Visibility.Collapsed;
         }
-        nextButtonRef.IsEnabled = true;
+        nextHidden = false;
+        nextButtonRef.Visibility = Visibility.Visible;
+        isPaused = false;
         InitializeMedia(videoFiles[currentVideoIndex]);
     }
 
     private void LoadNextVideo(object sender, EventArgs e){
         currentVideoIndex++;
         if(currentVideoIndex >= videoFiles.Length-1){
-            nextButtonRef.IsEnabled = false;
+            nextHidden = true;
+            nextButtonRef.Visibility = Visibility.Collapsed;
         }
-        prevButtonRef.IsEnabled = true;
+        prevHidden = false;
+        prevButtonRef.Visibility = Visibility.Visible;
+        isPaused = false;
         InitializeMedia(videoFiles[currentVideoIndex]);
     }
     
@@ -114,14 +155,6 @@ public partial class MainWindow : Window
         isOver = false;
         mediaElementRef.Source = new Uri(videoPath);
         mediaTitleRef.Content = System.IO.Path.GetFileName(videoPath);
-        Dispatcher.BeginInvoke(new Action(() =>{
-            playSliderRef = (FindName("playSlider") as Slider)!;
-            Thumb thumb = (playSliderRef.Template.FindName("PART_Track", playSliderRef) as Track)!.Thumb;
-            Panel.SetZIndex(thumb, 5);
-            thumb.DragStarted += SliderDragStarted;
-            thumb.DragCompleted += SliderDragCompleted;
-            //rangeSlider = new RangeSlider(this);   // for some reason, rangeSlider isnt init here yet? Just make a new one each media switch
-        }), DispatcherPriority.Background);
         PlayMedia();
     }
 
@@ -145,25 +178,26 @@ public partial class MainWindow : Window
         double mediaMs = mediaElementRef.Position.TotalMilliseconds;
         headTSLabel.Content = TimeSpan.FromMilliseconds(mediaMs).ToString(@"hh\:mm\:ss\.fff");
 
-        if(!isDragging){
+        if (!isDragging)
+        {
             SetPlaySliderValue(mediaMs);
             headTSLabel.Content = TimeSpan.FromMilliseconds(mediaElementRef.Position.TotalMilliseconds).ToString(@"hh\:mm\:ss\.fff");
-        }else{
+        }
+        else
+        {
             UpdateMediaPosition(playSliderRef.Value);
         }
 
         if(!isDragging && mediaMs >= mediaEndMs){
             PauseMedia();
             isOver = true;
-            topShadowRef.Visibility = Visibility.Visible;
-            bottomShadowRef.Visibility = Visibility.Visible;
         }
     }
 
     public void SetPlaySliderValue(double newValue){
         newValue = Math.Max(mediaStartMs, newValue);    // clamp min value to start position
         newValue = Math.Min(newValue, mediaEndMs);      // clamp max value to end position
-        playSlider.Value = newValue;
+        playSliderRef.Value = newValue;
         if(isDragging){
             UpdateMediaPosition(newValue);
         }
@@ -226,29 +260,44 @@ public partial class MainWindow : Window
         isDragging = false;
     }
 
-    public void SetStartPos(object sender, RoutedEventArgs e){
+    private void TrackUp(object sender, MouseEventArgs e){
+        if (!isDragging)
+        {
+            isOver = false;
+            var track = (Track)sender;
+            Point pos = e.GetPosition(track);
+            double ratio = pos.X / track.ActualWidth;
+            double newValue = ratio * (track.Maximum - track.Minimum) + track.Minimum;
+            playSliderRef.Value = newValue;
+            UpdateMediaPosition(newValue);
+            e.Handled = true;
+        }
+    }
+
+    public void SetStartPos(object sender, RoutedEventArgs e)
+    {
         double value = playSliderRef.Value;
         mediaStartMs = value;
-        UpdateMarker(StartMarker, value);
+        UpdateMarker(startMarker, value);
         startTSLabel.Content = TimeSpan.FromMilliseconds(value).ToString(@"hh\:mm\:ss\.fff");
     }
 
     public void SetEndPos(object sender, RoutedEventArgs e){
         double value = playSliderRef.Value;
         mediaEndMs = value;
-        UpdateMarker(EndMarker, value);
+        UpdateMarker(endMarker, value);
         endTSLabel.Content = TimeSpan.FromMilliseconds(value).ToString(@"hh\:mm\:ss\.fff");
     }
 
-    public void UnsetStartPos(object sender, RoutedEventArgs e){
+    public void UnsetStartPos(object? sender, RoutedEventArgs? e){
         mediaStartMs = 0;
-        UpdateMarker(StartMarker, -5000);
+        UpdateMarker(startMarker, -5000);
         startTSLabel.Content = TimeSpan.FromMilliseconds(0).ToString(@"hh\:mm\:ss\.fff");
     }
 
-    public void UnsetEndPos(object sender, RoutedEventArgs e){
+    public void UnsetEndPos(object? sender, RoutedEventArgs? e){
         mediaEndMs = mediaMsTotal;
-        UpdateMarker(EndMarker, 10000000000000000);
+        UpdateMarker(endMarker, 10000000000000000);
         endTSLabel.Content = TimeSpan.FromMilliseconds(mediaMsTotal).ToString(@"hh\:mm\:ss\.fff");
         isOver = false;     // Lets you continue playback without restarting
     }
@@ -309,15 +358,37 @@ public partial class MainWindow : Window
     }
 
 
-    private void WindowMouseEnter(object sender, MouseEventArgs e){
+    private void WindowMouseEnter(object sender, MouseEventArgs e)
+    {
         topShadowRef.Visibility = Visibility.Visible;
         bottomShadowRef.Visibility = Visibility.Visible;
         mediaTitleRef.Visibility = Visibility.Visible;
+        startTSLabel.Visibility = Visibility.Visible;
+        endTSLabel.Visibility = Visibility.Visible;
+        prevButtonRef.Visibility = prevHidden ? Visibility.Hidden : Visibility.Visible;
+        nextButtonRef.Visibility = nextHidden ? Visibility.Hidden : Visibility.Visible;
+        b1r.Visibility = Visibility.Visible;
+        b2r.Visibility = Visibility.Visible;
+        b3r.Visibility = Visibility.Visible;
+        b4r.Visibility = Visibility.Visible;
+        b5r.Visibility = Visibility.Visible;
+        trimButtonRef.Visibility = Visibility.Visible;
     }
 
-    private void WindowMouseExit(object sender, MouseEventArgs e){
+    private void WindowMouseExit(object sender, MouseEventArgs e)
+    {
         topShadowRef.Visibility = Visibility.Hidden;
         bottomShadowRef.Visibility = Visibility.Hidden;
         mediaTitleRef.Visibility = Visibility.Hidden;
+        startTSLabel.Visibility = Visibility.Hidden;
+        endTSLabel.Visibility = Visibility.Hidden;
+        prevButtonRef.Visibility = Visibility.Hidden;
+        nextButtonRef.Visibility = Visibility.Hidden;
+        b1r.Visibility = Visibility.Hidden;
+        b2r.Visibility = Visibility.Hidden;
+        b3r.Visibility = Visibility.Hidden;
+        b4r.Visibility = Visibility.Hidden;
+        b5r.Visibility = Visibility.Hidden;
+        trimButtonRef.Visibility = Visibility.Hidden;
     }
 }
