@@ -18,32 +18,30 @@
         <Style x:Key="RoundedButtonStyle" TargetType="Button" BasedOn="{x:Null}">
             <Setter Property="Foreground" Value="White" />
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="2"/>
             <Setter Property="BorderBrush" Value="White" />
-            <Setter Property="FontSize" Value="30"/>
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="FontSize" Value="30" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
-                                CornerRadius="5"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                BorderBrush="{TemplateBinding BorderBrush}">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                            VerticalAlignment="Center"
-                                            Margin="0"/>
+                        <Border 
+                            x:Name="border"
+                            Background="{TemplateBinding Background}" 
+                            BorderBrush="{TemplateBinding BorderBrush}" 
+                            BorderThickness="{TemplateBinding BorderThickness}" 
+                            CornerRadius="5">
+                            <ContentPresenter 
+                                HorizontalAlignment="Center" 
+                                VerticalAlignment="Center" 
+                                RecognizesAccessKey="True" />
                         </Border>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="White"/>
-                    <Setter Property="Foreground" Value="Black"/>
-                </Trigger>
-                <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="#AAAAAA"/>
-                    <Setter Property="Foreground" Value="Black"/>
-                    <Setter Property="BorderBrush" Value="#AAAAAA"/>
+                    <Setter Property="Background" Value="White" />
+                    <Setter Property="Foreground" Value="Black" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -62,6 +60,19 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+        <Style x:Key="InvisibleRepeatButtonStyle" TargetType="RepeatButton">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RepeatButton">
+                        <Rectangle Fill="Transparent"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="IsTabStop" Value="False"/>
         </Style>
     </Window.Resources>
     
@@ -128,12 +139,22 @@
                                         RadiusX="2" RadiusY="2"
                                         Margin="4,0"/>
                                     <Track x:Name="PART_Track"
+                                        IsDirectionReversed="{TemplateBinding IsDirectionReversed}"
+                                        Orientation="{TemplateBinding Orientation}"
                                         Maximum="{TemplateBinding Maximum}"
                                         Minimum="{TemplateBinding Minimum}"
                                         Value="{TemplateBinding Value}">
                                         <Track.Thumb>
                                             <Thumb Style="{StaticResource BigCircularThumbStyle}" />
                                         </Track.Thumb>
+                                        <Track.DecreaseRepeatButton>
+                                            <RepeatButton Command="Slider.DecreaseLarge"
+                                                        Style="{StaticResource InvisibleRepeatButtonStyle}" />
+                                        </Track.DecreaseRepeatButton>
+                                        <Track.IncreaseRepeatButton>
+                                            <RepeatButton Command="Slider.IncreaseLarge"
+                                                        Style="{StaticResource InvisibleRepeatButtonStyle}" />
+                                        </Track.IncreaseRepeatButton>
                                     </Track>
                                 </Grid>
                             </ControlTemplate>
@@ -155,14 +176,14 @@
                     <ColumnDefinition Width="100"/>
                 </Grid.ColumnDefinitions>  
 
-                <Button Name = "PrevButton" Content="⟵" Click="LoadPrevVideo" FontSize="15" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Width="40" Height="30" Margin="5" Foreground="White" Background="Transparent" BorderBrush="White" BorderThickness="2"/>
-                <Button Content="Set" Click="SetStartPos" FontSize="15" Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center" Width="40" Height="30" Margin="5" Foreground="White" Background="Transparent" BorderBrush="White" BorderThickness="2"/>
-                <Button Content="X" Click="UnsetStartPos" FontSize="15" Grid.Column="3" HorizontalAlignment="Center" VerticalAlignment="Center" Width="40" Height="30" Margin="5" Foreground="White" Background="Transparent" BorderBrush="White" BorderThickness="2"/>
-                <Button Content="II" Click="TogglePlayback" FontSize="15" Grid.Column="4" HorizontalAlignment="Center" VerticalAlignment="Center" Width="40" Height="30" Margin="5" Foreground="White" Background="Transparent" BorderBrush="White" BorderThickness="2"/>
-                <Button Content="Set" Click="SetEndPos" FontSize="15" Grid.Column="5" HorizontalAlignment="Center" VerticalAlignment="Center" Width="40" Height="30" Margin="5" Foreground="White" Background="Transparent" BorderBrush="White" BorderThickness="2"/>
-                <Button Content="X" Click="UnsetEndPos" FontSize="15" Grid.Column="6" HorizontalAlignment="Center" VerticalAlignment="Center" Width="40" Height="30" Margin="5" Foreground="White" Background="Transparent" BorderBrush="White" BorderThickness="2"/>
-                <Button Name = "NextButton" Content="⟶" Click="LoadNextVideo" FontSize="15" Grid.Column="7" HorizontalAlignment="Left" VerticalAlignment="Center" Width="40" Height="30" Margin="5" Foreground="White" Background="Transparent" BorderBrush="White" BorderThickness="2"/>
-                <Button Content="Trim" Click="TrimVideo" FontSize="15" Grid.Column="8" HorizontalAlignment="Right" VerticalAlignment="Center" Height="30" Margin="5" Padding="10,0" Foreground="White" Background="Transparent" BorderBrush="White" BorderThickness="2"/>
+                <Button Name = "PrevButton" Content="⟵" Click="LoadPrevVideo" FontSize="15" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Width="40" Height="30" Margin="5" Style="{StaticResource RoundedButtonStyle}"/>
+                <Button Name = "b1" Content="Set" Click="SetStartPos" FontSize="15" Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center" Width="40" Height="30" Margin="5" Style="{StaticResource RoundedButtonStyle}"/>
+                <Button Name = "b2" Content="X" Click="UnsetStartPos" FontSize="15" Grid.Column="3" HorizontalAlignment="Center" VerticalAlignment="Center" Width="40" Height="30" Margin="5" Style="{StaticResource RoundedButtonStyle}"/>
+                <Button Name = "b3" Content="II" Click="TogglePlayback" FontSize="15" Grid.Column="4" HorizontalAlignment="Center" VerticalAlignment="Center" Width="40" Height="30" Margin="5" Style="{StaticResource RoundedButtonStyle}"/>
+                <Button Name = "b4" Content="Set" Click="SetEndPos" FontSize="15" Grid.Column="5" HorizontalAlignment="Center" VerticalAlignment="Center" Width="40" Height="30" Margin="5" Style="{StaticResource RoundedButtonStyle}"/>
+                <Button Name = "b5" Content="X" Click="UnsetEndPos" FontSize="15" Grid.Column="6" HorizontalAlignment="Center" VerticalAlignment="Center" Width="40" Height="30" Margin="5" Style="{StaticResource RoundedButtonStyle}"/>
+                <Button Name = "NextButton" Content="⟶" Click="LoadNextVideo" FontSize="15" Grid.Column="7" HorizontalAlignment="Left" VerticalAlignment="Center" Width="40" Height="30" Margin="5" Style="{StaticResource RoundedButtonStyle}"/>
+                <Button Name = "TrimButton" Content="Trim" Click="TrimVideo" FontSize="15" Grid.Column="8" HorizontalAlignment="Right" VerticalAlignment="Center" Width="80" Height="30" Margin="5" Padding="10,0" Style="{StaticResource RoundedButtonStyle}"/>
             </Grid>
         </Grid>
     </Grid>
