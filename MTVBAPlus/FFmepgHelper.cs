@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Diagnostics;
 
 public static class FFmpegHelper{
-    private static string _extractedPath;
+    private static string? _extractedPath;
 
     public static string ExtractFfmpeg(){
         if (_extractedPath != null)
@@ -11,7 +11,7 @@ public static class FFmpegHelper{
 
         string resourceName = "MTVBAPlus.ffmpeg.ffmpeg.exe";
 
-        using Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName);
+        using Stream? stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName);
         if (stream == null)
             throw new FileNotFoundException("Embedded ffmpeg.exe not found.");
 
