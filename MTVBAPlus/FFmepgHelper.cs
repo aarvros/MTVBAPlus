@@ -34,6 +34,7 @@ public static class FFmpegHelper{
         string duration = TimeSpan.FromMilliseconds(endMs - startMs).ToString(@"hh\:mm\:ss\.fff");
 
         var args = $"-hide_banner -y -ss {start} -i \"{inputPath}\" -t {duration} -c:v libx264 -preset fast -c:a aac -avoid_negative_ts make_zero -reset_timestamps 1 \"{outputPath}\"";
+        //var args = $"-hide_banner -y -i \"{inputPath}\" -ss {start} -t {duration} -c:v libx264 -preset fast -crf 18 -c:a aac -avoid_negative_ts make_zero \"{outputPath}\""; //Full Re-encode
 
         var psi = new ProcessStartInfo
         {
